@@ -83,7 +83,9 @@ RenderSettings ParseRenderSettings(const Json::Dict& json) {
 	result.line_width = json.at("line_width").AsDouble();
 	result.underlayer_width = json.at("underlayer_width").AsDouble();
 	result.stop_label_font_size = json.at("stop_label_font_size").AsInt();
+	result.bus_label_font_size = json.at("bus_label_font_size").AsInt();
 	result.stop_label_offset = ParsePoint(json.at("stop_label_offset"));
+	result.bus_label_offset = ParsePoint(json.at("bus_label_offset"));
 	result.underlayer_color = ParseColor(json.at("underlayer_color"));
 	result.palette = ParseColours(json.at("color_palette"));
 
@@ -119,7 +121,6 @@ void MapRenderer::RenderStopsPoints(Svg::Document& svg) const {
 
 void MapRenderer::RenderStopLabels(Svg::Document& svg) const {
 	for(const auto& [stop_name, stop_point] : stops_coords_){
-		//const auto& base_text = Svg::Text{};
 		const auto base_text =
 				Svg::Text{}
 				.SetPoint(stop_point)
@@ -142,6 +143,37 @@ void MapRenderer::RenderStopLabels(Svg::Document& svg) const {
 	}
 }
 
+void MapRenderer::RenderBusLabels(Svg::Document& svg) const {
+	for (const auto& [bus_name, bus_ptr] : buses_dict_) {
+		const auto& stops = bus_ptr->stops;
+		if(!stops.empty()){
+		   const auto& color = buses_colours_.at(bus_name);
+		   for (const string& endpoint : bus_ptr->endpoints){
+			   const auto point = stops_coords_.at(endpoint);
+		   	   const auto base_text =
+		   			   Svg::Text{}
+		   	   	   	   .SetPoint(point)
+		   	   	   	   .SetOffset(render_settings_.bus_label_offset)
+					   .SetFontSize(render_settings_.bus_label_font_size)
+					   .SetFontFamily("Verdana")
+					   .SetFontWeight("bold")
+					   .SetData(bus_name);
+		   	   svg.Add(
+		   			   Svg::Text(base_text)
+		   	   	   	   .SetFillColor(render_settings_.underlayer_color)
+					   .SetStrokeColor(render_settings_.underlayer_color)
+					   .SetStrokeWidth(render_settings_.underlayer_width)
+					   .SetStrokeLineCap("round").SetStrokeLineJoin("round")
+		   			   );
+		   	   svg.Add(Svg::Text(base_text)
+		   					.SetFillColor(color)
+		   					.SetStrokeColor("none")
+		   					.SetStrokeWidth(1));}
+		}
+	}
+
+}
+
 MapRenderer::MapRenderer(const Descriptions::StopsDict& stops_,
 		const Descriptions::BusesDict& buses_,
 		const Json::Dict& render_settings_json_) :
@@ -158,6 +190,7 @@ Svg::Document MapRenderer::Render() const {
 	Svg::Document svg;
 
 	RenderBusLines(svg);
+	RenderBusLabels(svg);
 	RenderStopsPoints(svg);
 	RenderStopLabels(svg);
 

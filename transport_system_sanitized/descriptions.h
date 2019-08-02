@@ -26,6 +26,7 @@ std::vector<std::string> ParseStops(const std::vector<Json::Node>& stop_nodes,
 struct Bus {
 	std::string name;
 	std::vector<std::string> stops;
+	std::vector<std::string> endpoints;
 
 	static Bus ParseFrom(const Json::Dict& attrs);
 };

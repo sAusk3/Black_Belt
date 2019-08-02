@@ -42,8 +42,21 @@ if (auto it = lhs.distances.find(rhs.name); it != lhs.distances.end()) {
 }
 
 Bus Bus::ParseFrom(const Json::Dict& attrs) {
-return Bus { .name = attrs.at("name").AsString(), .stops = ParseStops(
-		attrs.at("stops").AsArray(), attrs.at("is_roundtrip").AsBool()), };
+
+	const auto stops = attrs.at("stops").AsArray();
+	vector<string> endpoints_;
+
+	if(stops.size() != 0){
+		if(attrs.at("is_roundtrip").AsBool() || stops[0].AsString() == stops[stops.size() - 1].AsString()){
+			endpoints_.push_back(stops[0].AsString());
+		}
+		else{ endpoints_.push_back(stops[0].AsString());
+			  endpoints_.push_back(stops[stops.size() - 1].AsString());}
+	}
+
+	return Bus { .name = attrs.at("name").AsString(), .stops = ParseStops(
+		attrs.at("stops").AsArray(), attrs.at("is_roundtrip").AsBool()), .endpoints = endpoints_};
+
 }
 
 vector<InputQuery> ReadDescriptions(const vector<Json::Node>& nodes) {
