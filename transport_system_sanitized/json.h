@@ -2,15 +2,18 @@
 
 #include <iostream>
 #include <map>
+#include <unordered_map>
 #include <string>
 #include <utility>
 #include <variant>
 #include <vector>
+#include <iomanip>
 
 namespace Json {
 
 class Node;
-using Dict = std::map<std::string, Node>;
+using Dict 			= std::map<std::string, Node>;
+//using UnorderedDict = std::unordered_map<std::string, Node>;
 
 class Node: std::variant<std::vector<Node>, Dict, bool, int, double, std::string> {
 public:
@@ -38,6 +41,11 @@ public:
 	const auto& AsString() const {
 		return std::get<std::string>(*this);
 	}
+
+	bool IsString() const {
+		return std::holds_alternative<std::string>(*this) ?
+					true : false;
+	}
 };
 
 class Document {
@@ -54,11 +62,14 @@ private:
 	Node root_;
 };
 
-Node LoadNode(std::istream& input);
+Node
+LoadNode(std::istream& input);
 
-Document Load(std::istream& input);
+Document
+Load(std::istream& input);
 
-void PrintNode(const Node& node, std::ostream& output);
+void
+PrintNode(const Node& node, std::ostream& output);
 
 template<typename Value>
 void PrintValue(const Value& value, std::ostream& output) {
@@ -66,18 +77,23 @@ void PrintValue(const Value& value, std::ostream& output) {
 }
 
 template<>
-void PrintValue<std::string>(const std::string& value, std::ostream& output);
+void
+PrintValue<std::string>(const std::string& value, std::ostream& output);
 
 template<>
-void PrintValue<bool>(const bool& value, std::ostream& output);
+void
+PrintValue<bool>(const bool& value, std::ostream& output);
 
 template<>
-void PrintValue<std::vector<Node>>(const std::vector<Node>& nodes,
+void
+PrintValue<std::vector<Node>>(const std::vector<Node>& nodes,
 		std::ostream& output);
 
 template<>
-void PrintValue<Dict>(const Dict& dict, std::ostream& output);
+void
+PrintValue<Dict>(const Dict& dict, std::ostream& output);
 
-void Print(const Document& document, std::ostream& output);
+void
+Print(const Document& document, std::ostream& output);
 
 }

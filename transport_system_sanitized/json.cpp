@@ -39,7 +39,7 @@ Node LoadNumber(istream& input) {
 	if (input.peek() != '.') {
 		return Node(int_part * (is_negative ? -1 : 1));
 	}
-	input.get();  // '.'
+	input.get(); // '.'
 	double result = int_part;
 	double frac_mult = 0.1;
 	while (isdigit(input.peek())) {
@@ -123,7 +123,7 @@ template<>
 void PrintValue<Dict>(const Dict& dict, std::ostream& output) {
 	output << '{';
 	bool first = true;
-	for (const auto& [key, node]: dict) {
+	for (const auto& [key, node] : dict) {
 		if (!first) {
 			output << ", ";
 		}
@@ -136,6 +136,7 @@ void PrintValue<Dict>(const Dict& dict, std::ostream& output) {
 }
 
 void PrintNode(const Json::Node& node, ostream& output) {
+	//output << setprecision (15);
 	visit([&output](const auto& value) {PrintValue(value, output);},
 			node.GetBase());
 }

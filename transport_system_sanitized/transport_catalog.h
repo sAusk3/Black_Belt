@@ -4,6 +4,7 @@
 #include "json.h"
 #include "transport_router.h"
 #include "utils.h"
+#include "svg.h"
 
 #include <optional>
 #include <set>
@@ -21,7 +22,7 @@ struct Bus {
 	size_t stop_count = 0;
 	size_t unique_stop_count = 0;
 	int road_route_length = 0;
-	double geo_route_length = 0.0;
+	double geo_route_length;
 };
 }
 
@@ -32,7 +33,8 @@ private:
 
 public:
 	TransportCatalog(std::vector<Descriptions::InputQuery> data,
-			const Json::Dict& routing_settings_json);
+					const Json::Dict& routing_settings_json,
+					const Json::Dict& render_settings_json);
 
 	const Stop* GetStop(const std::string& name) const;
 	const Bus* GetBus(const std::string& name) const;
@@ -49,7 +51,15 @@ private:
 	static double ComputeGeoRouteDistance(const std::vector<std::string>& stops,
 			const Descriptions::StopsDict& stops_dict);
 
+	static Svg::Document BuildMap(
+				const Descriptions::StopsDict& stops_,
+				const Descriptions::BusesDict& buses_,
+				const Json::Dict& render_settings_json
+			);
+
 	std::unordered_map<std::string, Stop> stops_;
 	std::unordered_map<std::string, Bus> buses_;
 	std::unique_ptr<TransportRouter> router_;
+	Svg::Document map_;
 };
+
