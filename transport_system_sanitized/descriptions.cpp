@@ -46,7 +46,7 @@ Bus Bus::ParseFrom(const Json::Dict& attrs) {
 	const auto stops = attrs.at("stops").AsArray();
 	vector<string> endpoints_;
 
-	if(stops.size() != 0){
+	if(!stops.empty()){
 		if(attrs.at("is_roundtrip").AsBool() || stops[0].AsString() == stops[stops.size() - 1].AsString()){
 			endpoints_.push_back(stops[0].AsString());
 		}

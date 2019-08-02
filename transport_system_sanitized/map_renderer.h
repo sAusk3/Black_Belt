@@ -23,6 +23,7 @@ struct RenderSettings {
 	Svg::Point bus_label_offset;
 	Svg::Color underlayer_color;
 	std::vector<Svg::Color> palette;
+	std::vector<std::string> layers;
 };
 
 class MapRenderer{
@@ -38,6 +39,7 @@ private:
 	const Descriptions::BusesDict& buses_dict_;
 	std::map<std::string, Svg::Point> stops_coords_;
 	std::map<std::string, Svg::Color> buses_colours_;
+	static const std::unordered_map<std::string, void(MapRenderer::*)(Svg::Document&) const> LAYERS_ACTIONS;
 
 	void RenderBusLines(Svg::Document& svg) const;
 	void RenderBusLabels(Svg::Document& svg) const;

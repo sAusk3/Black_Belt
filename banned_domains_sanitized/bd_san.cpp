@@ -164,11 +164,11 @@ void PrintCheckResults(const vector<bool>& check_results, ostream& out_stream =
 	}
 }
 
-int main() {
+/*int main() {
 	ios::sync_with_stdio(false);
 	cin.tie(nullptr);
 	const vector<Domain> banned_domains = ReadDomains();
 	const vector<Domain> domains_to_check = ReadDomains();
 	PrintCheckResults(CheckDomains(banned_domains, domains_to_check));
 	return 0;
-}
+}*/

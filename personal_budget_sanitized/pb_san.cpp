@@ -1,4 +1,4 @@
-#include <algorithm>
+/*#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <ctime>
@@ -631,3 +631,4 @@ int main() {
 
 	return 0;
 }
+*/
