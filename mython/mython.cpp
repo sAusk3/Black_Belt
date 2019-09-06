@@ -26,9 +26,9 @@ void RunMythonProgram(istream& input, ostream& output) {
   program->Execute(closure);
 }
 
-int main() {
+/*int main() {
 
   RunMythonProgram(cin, cout);
 
   return 0;
-}
+}*/
