@@ -9,98 +9,42 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <algorithm>
+
 
 struct RenderSettings {
-
-	long double max_width;
-	long double max_height;
-	long double padding;
-	long double stop_radius;
-	long double line_width;
-	long double underlayer_width;
-	int stop_label_font_size;
-	int bus_label_font_size;
-	Svg::Point stop_label_offset;
-	Svg::Point bus_label_offset;
-	Svg::Color underlayer_color;
-	std::vector<Svg::Color> palette;
-	std::vector<std::string> layers;
+  double max_width;
+  double max_height;
+  double padding;
+  std::vector<Svg::Color> palette;
+  double line_width;
+  Svg::Color underlayer_color;
+  double underlayer_width;
+  double stop_radius;
+  Svg::Point bus_label_offset;
+  int bus_label_font_size;
+  Svg::Point stop_label_offset;
+  int stop_label_font_size;
+  std::vector<std::string> layers;
 };
 
 class MapRenderer {
 public:
-	MapRenderer(const Descriptions::StopsDict& stops,
-			const Descriptions::BusesDict& buses,
-			const Json::Dict& render_settings);
+  MapRenderer(const Descriptions::StopsDict& stops_dict,
+              const Descriptions::BusesDict& buses_dict,
+              const Json::Dict& render_settings_json);
 
-	Svg::Document Render() const;
+  Svg::Document Render() const;
 
 private:
-	RenderSettings render_settings_;
-	const Descriptions::BusesDict& buses_dict_;
-	std::map<std::string, Svg::Point> stops_coords_;
-	std::map<std::string, Svg::Color> buses_colours_;
-	static const std::unordered_map<std::string,
-			void (MapRenderer::*)(Svg::Document&) const> LAYERS_ACTIONS;
+  RenderSettings render_settings_;
+  const Descriptions::BusesDict& buses_dict_;
+  std::map<std::string, Svg::Point> stops_coords_;
+  std::unordered_map<std::string, Svg::Color> bus_colors_;
 
-	void RenderBusLines(Svg::Document& svg) const;
-	void RenderBusLabels(Svg::Document& svg) const;
-	void RenderStopsPoints(Svg::Document& svg) const;
-	void RenderStopLabels(Svg::Document& svg) const;
-};
+  void RenderBusLines(Svg::Document& svg) const;
+  void RenderBusLabels(Svg::Document& svg) const;
+  void RenderStopPoints(Svg::Document& svg) const;
+  void RenderStopLabels(Svg::Document& svg) const;
 
-struct NeighboursDicts {
-	std::unordered_map<double, std::unordered_set<double>> neighbour_lats;
-	std::unordered_map<double, std::unordered_set<double>> neighbour_lons;
-};
-
-class CoordsCompressor {
-public:
-	CoordsCompressor(const std::unordered_map<std::string, Sphere::Point>& stops_dict);
-	void FillTargets(const double& max_width, const double& max_height,
-			const double& padding);
-	void FillIndices(
-			const std::unordered_map<double, std::unordered_set<double>>& neighbour_lats,
-			const std::unordered_map<double, std::unordered_set<double>>& neighbour_lons) {
-		FillCoordIndices(lats_, neighbour_lats);
-		FillCoordIndices(lons_, neighbour_lons);
-	}
-	double MapLat(double value) const {
-		return Find(lats_, value).target;
-	}
-	;
-	double MapLon(double value) const {
-		return Find(lons_, value).target;
-	}
-	;
-private:
-	struct CoordInfo {
-		double source;
-		size_t idx = 0;
-		double target = 0;
-
-		bool operator<(const CoordInfo& other) const {
-			return source < other.source;
-		}
-	};
-
-	std::vector<CoordInfo> lats_;
-	std::vector<CoordInfo> lons_;
-
-	static const CoordInfo& Find(const std::vector<CoordInfo>& sorted_values,
-			double value) {
-		return *lower_bound(begin(sorted_values), end(sorted_values),
-				CoordInfo { value });
-	}
-
-	size_t FindMaxLatIdx() const {
-		return lats_.back().idx;
-	}
-	size_t FindMaxLonIdx() const {
-		return lons_.back().idx;
-	}
-
-	void FillCoordIndices(std::vector<CoordInfo>& coords,
-			const std::unordered_map<double, std::unordered_set<double>>& neighbour_values);
+  static const std::unordered_map<std::string, void (MapRenderer::*)(Svg::Document&) const> LAYER_ACTIONS;
 };
