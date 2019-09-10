@@ -47,36 +47,38 @@ static vector<string> ParseLayers(const Json::Node& json) {
 	return layers;
 }
 
-/*
- * Old func // Lower is modification for part J
- * static map<string, Svg::Point> ComputeStopsCoords(
-		const Descriptions::StopsDict& stops_dict,
-		const RenderSettings& render_settings) {
-	vector<Sphere::Point> points;
-	points.reserve(stops_dict.size());
-	for(const auto& [_,stop_ptr] : stops_dict) {
-		points.push_back(stop_ptr->position);
-	}
+static NeighboursDicts BuildCoordNeighboursDicts(const Descriptions::StopsDict& stops_dict,
+                                                 const Descriptions::BusesDict& buses_dict) {
+  unordered_map<double, unordered_set<double>> neighbour_lats;
+  unordered_map<double, unordered_set<double>> neighbour_lons;
+  for (const auto& [bus_name, bus_ptr] : buses_dict) {
+    const auto& stops = bus_ptr->stops;
+    if (stops.empty()) {
+      continue;
+    }
+    Sphere::Point point_prev = stops_dict.at(stops[0])->position;
+    for (size_t stop_idx = 1; stop_idx < stops.size(); ++stop_idx) {
+      const auto point_cur = stops_dict.at(stops[stop_idx])->position;
+      const auto [min_lat, max_lat] = minmax(point_prev.latitude, point_cur.latitude);
+      const auto [min_lon, max_lon] = minmax(point_prev.longitude, point_cur.longitude);
+      neighbour_lats[max_lat].insert(min_lat);
+      neighbour_lons[max_lon].insert(min_lon);
+      point_prev = point_cur;
+    }
+  }
 
-	const double max_width = render_settings.max_width;
-	const double max_height = render_settings.max_height;
-	const double padding = render_settings.padding;
-
-	const Sphere::Projector projector(begin(points),end(points),
-	 max_width,max_height,padding);
-
-	map<string, Svg::Point> stops_coords;
-	for(const auto& [stop_name,stop_ptr] : stops_dict) {
-			stops_coords[stop_name] = projector(stop_ptr->position);
-		}
-	return stops_coords;
+  return {move(neighbour_lats), move(neighbour_lons)};
 }
-*/
 
 static map<string, Svg::Point> ComputeStopsCoords(
 		const Descriptions::StopsDict& stops_dict,
+		const Descriptions::BusesDict& buses_dict,
 		const RenderSettings& render_settings) {
+
+	const auto [neighbour_lats, neighbour_lons] = BuildCoordNeighboursDicts(stops_dict, buses_dict);
+
 	CoordsCompressor compressor(stops_dict);
+	  compressor.FillIndices(neighbour_lats, neighbour_lons);
 	  compressor.FillTargets(render_settings.max_width, render_settings.max_height, render_settings.padding);
 
 	  map<string, Svg::Point> new_stops_coords;
@@ -207,6 +209,7 @@ MapRenderer::MapRenderer(const Descriptions::StopsDict& stops_,
 		render_settings_(ParseRenderSettings(render_settings_json_)), buses_dict_(
 				buses_), stops_coords_(
 				ComputeStopsCoords(stops_,
+									buses_,
 						ParseRenderSettings(render_settings_json_))), //
 		buses_colours_(
 				ChooseBusColors(buses_,
@@ -223,17 +226,9 @@ const std::unordered_map<std::string, void(MapRenderer::*)(Svg::Document&) const
 Svg::Document MapRenderer::Render() const {
 	Svg::Document svg;
 
-	//if(!render_settings_.layers.empty()){
 		for (const auto& layer : render_settings_.layers) {
 		(this->*LAYERS_ACTIONS.at(layer))(svg);
 		}
-	/*}
-	else{
-		RenderBusLines(svg);
-		RenderBusLabels(svg);
-		RenderStopsPoints(svg);
-		RenderStopLabels(svg);
-		}*/
 
 	return svg;
 }
@@ -248,26 +243,37 @@ CoordsCompressor::CoordsCompressor(const Descriptions::StopsDict& stops_dict){
 }
 
 void CoordsCompressor::FillTargets(const double& max_width, const double& max_height, const double& padding){
-	if (lats_.empty() || lons_.empty()){
-		return;
-	}
+	if (lats_.empty() || lons_.empty()) {
+	      return;
+	    }
 
-	const size_t max_lat_idx = lats_.size() - 1;
-	const double y_step = max_lat_idx ? (max_height - 2 * padding) / max_lat_idx : 0;
+	    const size_t max_lat_idx = FindMaxLatIdx();
+	    const double y_step = max_lat_idx ? (max_height - 2 * padding) / max_lat_idx : 0;
 
-	const size_t max_lon_idx = lons_.size() - 1;
-	const double x_step = max_lon_idx ? (max_width - 2 * padding) / max_lon_idx : 0;
+	    const size_t max_lon_idx = FindMaxLonIdx();
+	    const double x_step = max_lon_idx ? (max_width - 2 * padding) / max_lon_idx : 0;
 
-	{
-		size_t idx = 0;
-		for(auto& [_, value] : lats_){
-			value = max_height - padding - idx++ * y_step;
-		}
-	}
-	{
-			size_t idx = 0;
-			for(auto& [_, value] : lons_){
-				value = idx++ * x_step + padding;
-			}
-	}
+	    for (auto& [_, idx, value] : lats_) {
+	      value = max_height - padding - idx * y_step;
+	    }
+	    for (auto& [_, idx, value] : lons_) {
+	      value = idx * x_step + padding;
+	    }
 }
+
+void CoordsCompressor::FillCoordIndices(std::vector<CoordInfo>& coords, const std::unordered_map<double, std::unordered_set<double>>& neighbour_values) {
+    size_t global_idx = 0;
+    for (size_t coord_idx = 0; coord_idx < coords.size(); ++coord_idx) {
+      CoordInfo& coord = coords[coord_idx];
+      const auto* neighbours_ptr = GetValuePointer(neighbour_values, coord.source);
+      size_t prev_idx = coord_idx;
+      while (prev_idx > 0 && coords[prev_idx - 1].idx == global_idx) {
+        --prev_idx;
+        if (neighbours_ptr && neighbours_ptr->count(coords[prev_idx].source)) {
+          ++global_idx;
+          break;
+        }
+      }
+      coord.idx = global_idx;
+    }
+  }

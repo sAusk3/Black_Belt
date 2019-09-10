@@ -7,6 +7,7 @@
 #include <map>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <algorithm>
 
@@ -27,11 +28,11 @@ struct RenderSettings {
 	std::vector<std::string> layers;
 };
 
-class MapRenderer{
+class MapRenderer {
 public:
 	MapRenderer(const Descriptions::StopsDict& stops,
-				const Descriptions::BusesDict& buses,
-				const Json::Dict& render_settings);
+			const Descriptions::BusesDict& buses,
+			const Json::Dict& render_settings);
 
 	Svg::Document Render() const;
 
@@ -40,7 +41,8 @@ private:
 	const Descriptions::BusesDict& buses_dict_;
 	std::map<std::string, Svg::Point> stops_coords_;
 	std::map<std::string, Svg::Color> buses_colours_;
-	static const std::unordered_map<std::string, void(MapRenderer::*)(Svg::Document&) const> LAYERS_ACTIONS;
+	static const std::unordered_map<std::string,
+			void (MapRenderer::*)(Svg::Document&) const> LAYERS_ACTIONS;
 
 	void RenderBusLines(Svg::Document& svg) const;
 	void RenderBusLabels(Svg::Document& svg) const;
@@ -48,22 +50,37 @@ private:
 	void RenderStopLabels(Svg::Document& svg) const;
 };
 
-class CoordsCompressor{
+struct NeighboursDicts {
+	std::unordered_map<double, std::unordered_set<double>> neighbour_lats;
+	std::unordered_map<double, std::unordered_set<double>> neighbour_lons;
+};
+
+class CoordsCompressor {
 public:
 	CoordsCompressor(const Descriptions::StopsDict& stops_dict);
-	void FillTargets(const double& max_width, const double& max_height, const double& padding);
-	double MapLat(double value) const{
+	void FillTargets(const double& max_width, const double& max_height,
+			const double& padding);
+	void FillIndices(
+			const std::unordered_map<double, std::unordered_set<double>>& neighbour_lats,
+			const std::unordered_map<double, std::unordered_set<double>>& neighbour_lons) {
+		FillCoordIndices(lats_, neighbour_lats);
+		FillCoordIndices(lons_, neighbour_lons);
+	}
+	double MapLat(double value) const {
 		return Find(lats_, value).target;
-    };
-	double MapLon(double value) const{
+	}
+	;
+	double MapLon(double value) const {
 		return Find(lons_, value).target;
-	};
+	}
+	;
 private:
 	struct CoordInfo {
 		double source;
+		size_t idx = 0;
 		double target = 0;
 
-		bool operator<(const CoordInfo& other) const{
+		bool operator<(const CoordInfo& other) const {
 			return source < other.source;
 		}
 	};
@@ -71,7 +88,19 @@ private:
 	std::vector<CoordInfo> lats_;
 	std::vector<CoordInfo> lons_;
 
-	static const CoordInfo& Find(const std::vector<CoordInfo>& sorted_values, double value) {
-	    return *lower_bound(begin(sorted_values), end(sorted_values), CoordInfo{value});
+	static const CoordInfo& Find(const std::vector<CoordInfo>& sorted_values,
+			double value) {
+		return *lower_bound(begin(sorted_values), end(sorted_values),
+				CoordInfo { value });
 	}
+
+	size_t FindMaxLatIdx() const {
+		return lats_.back().idx;
+	}
+	size_t FindMaxLonIdx() const {
+		return lons_.back().idx;
+	}
+
+	void FillCoordIndices(std::vector<CoordInfo>& coords,
+			const std::unordered_map<double, std::unordered_set<double>>& neighbour_values);
 };

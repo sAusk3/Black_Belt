@@ -11,7 +11,7 @@
 
 using namespace std;
 
-int main() {
+/*int main() {
 
 	ifstream input("input.json");
 	ofstream output("output.json");
@@ -34,9 +34,9 @@ int main() {
 	output << endl;
 
 	return 0;
-}
+}*/
 
-/*int main() {
+int main() {
 	const auto input_doc = Json::Load(cin);
 	const auto& input_map = input_doc.GetRoot().AsMap();
 
@@ -52,4 +52,4 @@ int main() {
 	cout << endl;
 
 	return 0;
-}*/
+}
